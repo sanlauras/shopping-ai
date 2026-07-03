@@ -1,12 +1,46 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { decodeProductId } from "@/lib/products/productId";
 import { getProductAnalysis } from "@/lib/products/getProductAnalysis";
 import { ProductFetchError } from "@/lib/products/getProductInfo";
 import { ScoreBadge } from "@/components/features/ScoreBadge";
 import { SimilarProducts } from "@/components/features/SimilarProducts";
+import { getBaseUrl } from "@/lib/seo/getBaseUrl";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
+
+// generateMetadataとページ本体で同じ商品を取りに行くため、
+// React.cacheでリクエスト単位にメモ化して二重にスクレイピングしないようにする。
+const resolveProduct = cache(async (id: string) => {
+  const url = decodeProductId(id);
+  new URL(url); // 不正な値なら例外を投げてinvalid_url扱いにする
+  return getProductAnalysis(id, url);
+});
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+
+  try {
+    const product = await resolveProduct(id);
+    return {
+      title: `${product.title} のAI分析 | shopping-ai`,
+      description: product.summary,
+      alternates: { canonical: `${getBaseUrl()}/product/${id}` },
+      openGraph: {
+        title: product.title,
+        description: product.summary,
+        images: product.imageUrl ? [product.imageUrl] : undefined,
+      },
+    };
+  } catch {
+    return {
+      title: "商品情報を取得できませんでした | shopping-ai",
+      robots: { index: false, follow: false },
+    };
+  }
+}
 
 function ErrorCard({ message }: { message: string }) {
   return (
@@ -24,26 +58,41 @@ function ErrorCard({ message }: { message: string }) {
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
 
-  let url: string;
-  try {
-    url = decodeProductId(id);
-    new URL(url);
-  } catch {
-    return <ErrorCard message="商品ページのURLが正しくありません。" />;
-  }
-
   let product;
   try {
-    product = await getProductAnalysis(id, url);
+    product = await resolveProduct(id);
   } catch (error) {
     const message =
       error instanceof ProductFetchError
         ? error.message
-        : "予期しないエラーが発生しました。時間をおいて再度お試しください。";
+        : "商品ページのURLが正しくないか、予期しないエラーが発生しました。";
     return <ErrorCard message={message} />;
   }
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    ...(product.imageUrl ? { image: [product.imageUrl] } : {}),
+    ...(product.price !== null
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: product.price,
+            priceCurrency: "JPY",
+            url: product.sourceUrl,
+          },
+        }
+      : {}),
+  };
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
     <main className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="mx-auto max-w-3xl">
         {/* 商品情報 */}
@@ -125,5 +174,6 @@ export default async function ProductPage({ params }: Props) {
         <SimilarProducts excludeId={product.id} />
       </div>
     </main>
+    </>
   );
 }
