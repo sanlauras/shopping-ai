@@ -90,7 +90,6 @@ export default async function ProductPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
     <main className="min-h-screen bg-gray-50 px-4 py-10">
