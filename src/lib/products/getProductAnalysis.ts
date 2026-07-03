@@ -1,10 +1,26 @@
 import { getProductInfo } from "@/lib/products/getProductInfo";
 import { generatePlaceholderAnalysis } from "@/lib/products/generatePlaceholderAnalysis";
 import { findProductById, saveProduct } from "@/lib/products/productRepository";
-import { ProductAnalysis } from "@/types/product";
+import {
+  analyzeProductWithAi,
+  isAiConfigured,
+} from "@/lib/ai/analyzeProductWithAi";
+import { AnalysisContent, ProductAnalysis, ProductInfo } from "@/types/product";
 
-// フェーズ3で本物のAI解析に差し替える予定の窓口関数。
-// Supabase未設定の間はキャッシュが常に空なので、毎回スクレイピングし直すだけで動作する。
+async function getAnalysisContent(info: ProductInfo): Promise<AnalysisContent> {
+  if (!isAiConfigured()) {
+    return generatePlaceholderAnalysis("not_configured");
+  }
+
+  try {
+    return await analyzeProductWithAi(info);
+  } catch {
+    return generatePlaceholderAnalysis("ai_error");
+  }
+}
+
+// Supabase未設定の間はキャッシュが常に空、GEMINI_API_KEY未設定の間はAI解析がプレースホルダーになる。
+// どちらも設定すると、初回はスクレイピング+AI解析、2回目以降はDBキャッシュから即返す。
 export async function getProductAnalysis(
   id: string,
   url: string
@@ -13,7 +29,7 @@ export async function getProductAnalysis(
   if (cached) return cached;
 
   const info = await getProductInfo(url);
-  const analysisContent = generatePlaceholderAnalysis();
+  const analysisContent = await getAnalysisContent(info);
 
   const analysis: ProductAnalysis = {
     id,
