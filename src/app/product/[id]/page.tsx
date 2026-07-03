@@ -1,6 +1,8 @@
 import { decodeProductId } from "@/lib/products/productId";
 import { getProductAnalysis } from "@/lib/products/getProductAnalysis";
 import { ProductFetchError } from "@/lib/products/getProductInfo";
+import { ScoreBadge } from "@/components/features/ScoreBadge";
+import { SimilarProducts } from "@/components/features/SimilarProducts";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -64,10 +66,7 @@ export default async function ProductPage({ params }: Props) {
             <p className="text-gray-600 text-sm mb-4">{product.summary}</p>
 
             {/* スコア */}
-            <div className="inline-flex items-baseline gap-1 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">
-              <span className="text-3xl font-bold">{product.score}</span>
-              <span className="text-sm">/ 100点</span>
-            </div>
+            <ScoreBadge score={product.score} />
           </div>
         </div>
 
@@ -122,6 +121,8 @@ export default async function ProductPage({ params }: Props) {
             </ul>
           </div>
         </div>
+
+        <SimilarProducts excludeId={product.id} />
       </div>
     </main>
   );
