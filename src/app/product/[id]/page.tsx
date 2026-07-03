@@ -1,27 +1,66 @@
-import { getDummyProduct } from "@/lib/products/getDummyProduct";
+import { decodeProductId } from "@/lib/products/productId";
+import { getProductAnalysis } from "@/lib/products/getProductAnalysis";
+import { ProductFetchError } from "@/lib/products/getProductInfo";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
+function ErrorCard({ message }: { message: string }) {
+  return (
+    <main className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="mx-auto max-w-xl bg-white rounded-xl p-8 shadow-sm text-center">
+        <h1 className="text-lg font-bold text-gray-900 mb-2">
+          商品情報を取得できませんでした
+        </h1>
+        <p className="text-gray-600 text-sm">{message}</p>
+      </div>
+    </main>
+  );
+}
+
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  const product = getDummyProduct(id);
+
+  let url: string;
+  try {
+    url = decodeProductId(id);
+    new URL(url);
+  } catch {
+    return <ErrorCard message="商品ページのURLが正しくありません。" />;
+  }
+
+  let product;
+  try {
+    product = await getProductAnalysis(id, url);
+  } catch (error) {
+    const message =
+      error instanceof ProductFetchError
+        ? error.message
+        : "予期しないエラーが発生しました。時間をおいて再度お試しください。";
+    return <ErrorCard message={message} />;
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="mx-auto max-w-3xl">
         {/* 商品情報 */}
         <div className="flex flex-col sm:flex-row gap-6 bg-white rounded-xl p-6 shadow-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={product.imageUrl}
-            alt={product.productName}
+            src={product.imageUrl ?? "https://placehold.co/400x400?text=No+Image"}
+            alt={product.title}
             className="w-full sm:w-40 h-40 object-cover rounded-lg mx-auto sm:mx-0"
           />
           <div className="flex-1 text-center sm:text-left">
             <h1 className="text-xl font-bold text-gray-900 mb-2">
-              {product.productName}
+              {product.title}
             </h1>
+            <p className="text-gray-900 font-semibold mb-2">
+              {product.price !== null
+                ? `¥${product.price.toLocaleString()}`
+                : "価格情報を取得できませんでした"}
+            </p>
             <p className="text-gray-600 text-sm mb-4">{product.summary}</p>
 
             {/* スコア */}

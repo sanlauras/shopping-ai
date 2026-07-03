@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { encodeProductId } from "@/lib/products/productId";
 
 export function ProductUrlForm() {
   const [url, setUrl] = useState("");
@@ -11,13 +12,26 @@ export function ProductUrlForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!url.trim()) {
+    const trimmed = url.trim();
+    if (!trimmed) {
       setError("商品のURLを入力してください");
       return;
     }
 
-    // TODO: 本来はここでAI解析を行うが、MVPではダミーページへ遷移する
-    router.push(`/product/demo?url=${encodeURIComponent(url)}`);
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      setError("正しいURL形式で入力してください");
+      return;
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      setError("正しいURL形式で入力してください");
+      return;
+    }
+
+    router.push(`/product/${encodeProductId(trimmed)}`);
   };
 
   return (
