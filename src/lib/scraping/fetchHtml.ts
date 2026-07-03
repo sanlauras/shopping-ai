@@ -12,7 +12,9 @@ export class ProductFetchError extends Error {
   }
 }
 
-const FETCH_TIMEOUT_MS = 8000;
+// Vercelのサーバーから楽天/Yahoo!への実際のアクセスは、開発環境での検証時より
+// レイテンシが大きく、ページサイズも大きいことがあるため余裕を持たせている。
+const FETCH_TIMEOUT_MS = 15000;
 
 // 楽天市場など一部サイトは今でもEUC-JP/Shift_JISでページを返すため、
 // UTF-8決め打ちでデコードすると文字化けする。charsetを検出してから読む。
@@ -65,13 +67,18 @@ export async function fetchHtml(url: string): Promise<string> {
       return new TextDecoder("utf-8").decode(buffer);
     }
   } catch (error) {
-    if (error instanceof ProductFetchError) throw error;
+    if (error instanceof ProductFetchError) {
+      console.error(`[fetchHtml] ${error.reason}: ${url}`);
+      throw error;
+    }
     if (error instanceof Error && error.name === "AbortError") {
+      console.error(`[fetchHtml] timeout after ${FETCH_TIMEOUT_MS}ms: ${url}`);
       throw new ProductFetchError(
         "商品ページの取得がタイムアウトしました",
         "timeout"
       );
     }
+    console.error(`[fetchHtml] network_error: ${url}`, error);
     throw new ProductFetchError(
       "商品ページに接続できませんでした",
       "network_error"

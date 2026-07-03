@@ -11,6 +11,10 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
+// スクレイピング(最大15秒)+AI解析(最大12秒)を待つ可能性があるため、
+// Vercelのデフォルト実行時間制限より長めに設定する。
+export const maxDuration = 30;
+
 // generateMetadataとページ本体で同じ商品を取りに行くため、
 // React.cacheでリクエスト単位にメモ化して二重にスクレイピングしないようにする。
 const resolveProduct = cache(async (id: string) => {
