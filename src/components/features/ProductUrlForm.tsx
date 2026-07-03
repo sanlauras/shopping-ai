@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { encodeProductId } from "@/lib/products/productId";
+import { detectSite, SUPPORTED_SITE_LABEL } from "@/lib/scraping/detectSite";
 
 export function ProductUrlForm() {
   const [url, setUrl] = useState("");
@@ -28,6 +29,11 @@ export function ProductUrlForm() {
 
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       setError("正しいURL形式で入力してください");
+      return;
+    }
+
+    if (detectSite(trimmed) === "unknown") {
+      setError(`対応していないショッピングサイトです(対応サイト: ${SUPPORTED_SITE_LABEL})`);
       return;
     }
 

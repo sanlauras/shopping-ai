@@ -7,8 +7,11 @@ export default function Home() {
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
           AIが商品レビューを分析
         </h1>
-        <p className="text-gray-600 mb-10">
+        <p className="text-gray-600 mb-2">
           商品のURLを貼り付けるだけで、AIが良い点・悪い点をまとめてお伝えします
+        </p>
+        <p className="text-gray-400 text-sm mb-10">
+          対応サイト: Amazon / 楽天市場 / Yahoo!ショッピング
         </p>
         <ProductUrlForm />
       </div>
