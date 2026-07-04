@@ -1,6 +1,10 @@
 import https from "node:https";
 import { ProductFetchError } from "@/lib/scraping/fetchHtml";
-import { RakutenItemCode } from "@/lib/rakuten/extractItemCode";
+import { extractRakutenItemCode, RakutenItemCode } from "@/lib/rakuten/extractItemCode";
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // 2026年2〜5月の楽天API移行に伴い、ドメイン・パスが変更された
 // (app.rakuten.co.jp/services/api/ → openapi.rakuten.co.jp/ichibams/api/)。
@@ -161,27 +165,53 @@ export async function searchRakutenItem(
   return toApiItem(item);
 }
 
-// 第二段階: 商品名(キーワード)+お店コードで検索し、お店コードが完全一致する
-// 商品だけを採用する(誤って別の商品を表示しないための安全策)。
-export async function searchRakutenItemByKeyword(
+// 1ページあたりの最大件数(APIの上限)。
+const ITEMS_PER_PAGE = 30;
+// 探索する最大ページ数。これ以上探すとAPIのレート制限にかかりやすく、
+// 利用者を待たせすぎてしまうため、ここで見つからなければ諦める。
+const MAX_SEARCH_PAGES = 5;
+// ページ間の間隔。連続で叩くとAPI側のレート制限(1秒あたりの上限)に
+// かかることを実際に確認したため、間を空ける。
+const PAGE_INTERVAL_MS = 1100;
+
+// 第二段階: スクレイピングを一切使わず、お店の商品一覧をAPIでページ送りしながら、
+// 各商品の本来のURL(itemUrl)がURLコードと一致するものを探す。
+// キーワード検索(商品名で探す)ではなく、お店の中身を総当たりで確認するため、
+// お店コードが違う商品を誤って採用してしまう心配がない。
+export async function searchRakutenItemByUrlCode(
   shopCode: string,
-  keyword: string
+  urlCode: string
 ): Promise<RakutenApiItem> {
-  const data = await callRakutenSearchApi({ keyword, shopCode });
+  for (let page = 1; page <= MAX_SEARCH_PAGES; page++) {
+    if (page > 1) await sleep(PAGE_INTERVAL_MS);
 
-  const match = data.Items?.find(
-    (candidate) => String(candidate.shopCode ?? "") === shopCode
-  );
+    const data = await callRakutenSearchApi({
+      shopCode,
+      page: String(page),
+      hits: String(ITEMS_PER_PAGE),
+    });
 
-  if (!match) {
-    console.error(
-      `[rakuten] keyword search: no shopCode match (shopCode=${shopCode}, hits=${data.Items?.length ?? 0})`
-    );
-    throw new ProductFetchError(
-      "商品名での検索でも、お店コードが一致する商品が見つかりませんでした。",
-      "http_error"
-    );
+    const items = data.Items ?? [];
+    for (const item of items) {
+      const itemUrl = String(item.itemUrl ?? "");
+      try {
+        const parsed = extractRakutenItemCode(itemUrl);
+        if (parsed.shopCode === shopCode && parsed.itemCode === urlCode) {
+          return toApiItem(item);
+        }
+      } catch {
+        // itemUrlが想定外の形式の場合はスキップして次の商品を見る
+      }
+    }
+
+    if (items.length < ITEMS_PER_PAGE) break; // 最後のページまで確認済み
   }
 
-  return toApiItem(match);
+  console.error(
+    `[rakuten] urlCode search: not found within ${MAX_SEARCH_PAGES} pages (shopCode=${shopCode}, urlCode=${urlCode})`
+  );
+  throw new ProductFetchError(
+    `お店の商品一覧(最大${MAX_SEARCH_PAGES}ページ)を確認しましたが、該当する商品が見つかりませんでした。`,
+    "http_error"
+  );
 }
