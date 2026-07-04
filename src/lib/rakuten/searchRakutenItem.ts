@@ -215,3 +215,18 @@ export async function searchRakutenItemByUrlCode(
     "http_error"
   );
 }
+
+// 価格比較用: お店を限定せず、キーワードに一致する商品を広く検索する。
+// 見つからない場合は例外にせず空配列を返す(価格比較は「おまけ」の機能で、
+// 見つからなくても商品ページ自体は問題なく表示したいため)。
+export async function searchRakutenItemsByKeyword(
+  keyword: string
+): Promise<RakutenApiItem[]> {
+  try {
+    const data = await callRakutenSearchApi({ keyword, hits: String(ITEMS_PER_PAGE) });
+    return (data.Items ?? []).map(toApiItem);
+  } catch (error) {
+    console.error("[rakuten] searchRakutenItemsByKeyword failed", error);
+    return [];
+  }
+}

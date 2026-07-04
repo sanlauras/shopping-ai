@@ -5,6 +5,7 @@ import { getProductAnalysis } from "@/lib/products/getProductAnalysis";
 import { ProductFetchError } from "@/lib/products/getProductInfo";
 import { ScoreBadge } from "@/components/features/ScoreBadge";
 import { SimilarProducts } from "@/components/features/SimilarProducts";
+import { CheaperOffers } from "@/components/features/CheaperOffers";
 import { getBaseUrl } from "@/lib/seo/getBaseUrl";
 
 type Props = {
@@ -173,6 +174,14 @@ export default async function ProductPage({ params }: Props) {
             </ul>
           </div>
         </div>
+
+        {product.siteName === "rakuten" && (
+          <CheaperOffers
+            sourceUrl={product.sourceUrl}
+            title={product.title}
+            price={product.price}
+          />
+        )}
 
         <SimilarProducts excludeId={product.id} />
       </div>
