@@ -6,14 +6,18 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Amazon等は自動アクセスをCAPTCHAページへ誘導することがある。
-// また楽天(Akamaiなどのセキュリティ装置)は、ブロック時に
-// "Reference #18.xxxxx..." という数十文字だけの短い応答を返すことが
-// 実際に確認できたため、その形式もブロック判定に含める。
-// 番号部分は数字だけでなくa-fの英字(16進数)も混ざるため、
-// "Reference #" という接頭辞だけで判定する(誤検知の心配はほぼない)。
+// Amazon・楽天等の本物の商品ページは、いつも数万〜数十万文字ある
+// (実測: 楽天で15〜27万文字、Amazonの通常ページも同程度)。
+// それに対してブロックページは数十〜数千文字しかない。
+// ブロックページの文言は相手側の都合で変わることがある
+// (実際に「Reference #」の後ろの形式が変わって正規表現をすり抜けた
+// ことがあった)ため、文言に加えて「明らかに短すぎる」という
+// 量的な判定も組み合わせることで、文言が変わっても検知できるようにする。
+const SUSPICIOUSLY_SHORT_LENGTH = 10000;
+
 // その場合、見た目上はHTTP 200で返ってくるため、内容を見て検知する。
 function looksBlocked(html: string): boolean {
+  if (html.length < SUSPICIOUSLY_SHORT_LENGTH) return true;
   return /validateCaptcha|opfcaptcha|automated access|自動化されたデータ|Reference #/i.test(
     html
   );
