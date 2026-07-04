@@ -1,5 +1,5 @@
-import { fetchHtml, ProductFetchError } from "@/lib/scraping/fetchHtml";
-import { parseProductInfo } from "@/lib/scraping/parseProductInfo";
+import { ProductFetchError } from "@/lib/scraping/fetchHtml";
+import { fetchProductPage } from "@/lib/scraping/fetchProductPage";
 import { extractRakutenItemCode } from "@/lib/rakuten/extractItemCode";
 import {
   RakutenApiItem,
@@ -38,20 +38,13 @@ function toSearchKeyword(title: string): string {
 
 // 第二段階: 商品ページのタイトルだけ軽く読み取り(価格・画像はAPIから取るので不要)、
 // それをキーワードにして商品名+お店コードでAPI検索する。
+// fetchProductPage()はAmazon・Yahoo!の通常取得と同じ共通処理で、
+// 取得失敗時に1回だけ待って取り直す安全策も含んでいる。
 async function findByScrapedTitle(
   url: string,
   shopCode: string
 ): Promise<RakutenApiItem> {
-  const html = await fetchHtml(url);
-  const scraped = parseProductInfo(html, url, "rakuten");
-
-  if (scraped.title === "商品名を取得できませんでした") {
-    throw new ProductFetchError(
-      "商品ページから商品名を読み取れず、キーワード検索もできませんでした。",
-      "http_error"
-    );
-  }
-
+  const scraped = await fetchProductPage(url, "rakuten");
   const keyword = toSearchKeyword(scraped.title);
   return searchRakutenItemByKeyword(shopCode, keyword);
 }
