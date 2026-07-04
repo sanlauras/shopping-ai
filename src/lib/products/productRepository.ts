@@ -8,6 +8,9 @@ type ProductRow = {
   title: string;
   image_url: string | null;
   price: number | null;
+  description: string | null;
+  review_average: number | null;
+  review_count: number | null;
   score: number;
   summary: string;
   good_points: string[];
@@ -24,6 +27,9 @@ function rowToAnalysis(row: ProductRow): ProductAnalysis {
     title: row.title,
     imageUrl: row.image_url,
     price: row.price,
+    description: row.description,
+    reviewAverage: row.review_average,
+    reviewCount: row.review_count,
     score: row.score,
     summary: row.summary,
     goodPoints: row.good_points,
@@ -62,6 +68,9 @@ export async function saveProduct(analysis: ProductAnalysis): Promise<void> {
     title: analysis.title,
     image_url: analysis.imageUrl,
     price: analysis.price,
+    description: analysis.description,
+    review_average: analysis.reviewAverage,
+    review_count: analysis.reviewCount,
     score: analysis.score,
     summary: analysis.summary,
     good_points: analysis.goodPoints,

@@ -120,6 +120,10 @@ export function parseProductInfo(
     title,
     imageUrl,
     price,
+    // 商品説明・レビュー平均点・件数はスクレイピングでは取得していないため「情報なし」とする。
+    description: null,
+    reviewAverage: null,
+    reviewCount: null,
     sourceUrl,
     siteName,
   };

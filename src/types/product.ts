@@ -1,10 +1,15 @@
 export type SiteName = "amazon" | "rakuten" | "yahoo" | "unknown";
 
 // 商品ページから取得できる「事実情報」
+// description/reviewAverage/reviewCountは楽天APIでのみ取得できる項目のため、
+// Amazon・Yahoo!(スクレイピング)ではnull(=情報なし)になる。
 export type ProductInfo = {
   title: string;
   imageUrl: string | null;
   price: number | null;
+  description: string | null;
+  reviewAverage: number | null;
+  reviewCount: number | null;
   sourceUrl: string;
   siteName: SiteName;
 };

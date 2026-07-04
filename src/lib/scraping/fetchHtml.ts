@@ -6,6 +6,7 @@ export class ProductFetchError extends Error {
       | "timeout"
       | "http_error"
       | "network_error"
+      | "not_configured"
   ) {
     super(message);
     this.name = "ProductFetchError";

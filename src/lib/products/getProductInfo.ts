@@ -1,6 +1,7 @@
 import { detectSite, SUPPORTED_SITE_LABEL } from "@/lib/scraping/detectSite";
 import { fetchHtml, ProductFetchError } from "@/lib/scraping/fetchHtml";
 import { parseProductInfo } from "@/lib/scraping/parseProductInfo";
+import { getRakutenProductInfo } from "@/lib/rakuten/getRakutenProductInfo";
 import { ProductInfo, SiteName } from "@/types/product";
 
 function sleep(ms: number) {
@@ -39,6 +40,11 @@ export async function getProductInfo(url: string): Promise<ProductInfo> {
       `対応していないショッピングサイトです(対応サイト: ${SUPPORTED_SITE_LABEL})`,
       "invalid_url"
     );
+  }
+
+  // 楽天だけは公式APIを使う(Amazon・Yahoo!は引き続きスクレイピングのまま)。
+  if (siteName === "rakuten") {
+    return getRakutenProductInfo(url);
   }
 
   let { info, html } = await fetchAndParseOnce(url, siteName);
