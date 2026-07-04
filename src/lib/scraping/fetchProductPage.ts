@@ -10,9 +10,11 @@ function sleep(ms: number) {
 // また楽天(Akamaiなどのセキュリティ装置)は、ブロック時に
 // "Reference #18.xxxxx..." という数十文字だけの短い応答を返すことが
 // 実際に確認できたため、その形式もブロック判定に含める。
+// 番号部分は数字だけでなくa-fの英字(16進数)も混ざるため、
+// "Reference #" という接頭辞だけで判定する(誤検知の心配はほぼない)。
 // その場合、見た目上はHTTP 200で返ってくるため、内容を見て検知する。
 function looksBlocked(html: string): boolean {
-  return /validateCaptcha|opfcaptcha|automated access|自動化されたデータ|Reference #[\d.]+/i.test(
+  return /validateCaptcha|opfcaptcha|automated access|自動化されたデータ|Reference #/i.test(
     html
   );
 }
