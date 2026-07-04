@@ -7,9 +7,14 @@ function sleep(ms: number) {
 }
 
 // Amazon等は自動アクセスをCAPTCHAページへ誘導することがある。
+// また楽天(Akamaiなどのセキュリティ装置)は、ブロック時に
+// "Reference #18.xxxxx..." という数十文字だけの短い応答を返すことが
+// 実際に確認できたため、その形式もブロック判定に含める。
 // その場合、見た目上はHTTP 200で返ってくるため、内容を見て検知する。
 function looksBlocked(html: string): boolean {
-  return /validateCaptcha|opfcaptcha|automated access|自動化されたデータ/i.test(html);
+  return /validateCaptcha|opfcaptcha|automated access|自動化されたデータ|Reference #[\d.]+/i.test(
+    html
+  );
 }
 
 // タイトル・価格・画像が何も取れていない状態。ページ構成の変更のほか、

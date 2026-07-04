@@ -69,7 +69,13 @@ export async function getRakutenProductInfo(url: string): Promise<ProductInfo> {
     try {
       const item = await findByScrapedTitle(url, code.shopCode);
       return toProductInfo(item, url);
-    } catch {
+    } catch (fallbackError) {
+      // fetchProductPage()やキーワード検索が投げた具体的な理由
+      // (アクセス制限/お店コード不一致など)をそのまま利用者に伝える。
+      // ここで一律のメッセージに置き換えると、実際の原因が分からなくなってしまう。
+      if (fallbackError instanceof ProductFetchError) {
+        throw fallbackError;
+      }
       throw new ProductFetchError(
         "楽天APIでこの商品を見つけられませんでした。URLの形式が特殊であるか、商品が削除された可能性があります。",
         "http_error"
